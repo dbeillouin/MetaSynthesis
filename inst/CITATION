@@ -1,0 +1,10 @@
+citHeader("To cite SOCanalyses in publications use:")
+
+bibentry(
+  bibtype = "Manual",
+  title   = "SOCanalyses: {An} {R} package to analyse the impacts of human intervention on soil organic carbon",
+  author  = c(person("Beillouin Damien")),
+  year    = "2023",
+  note    = "R package version 0.0.0.9000",
+  url     = "https://github.com/dbeillouin/SOCanalyses"
+)

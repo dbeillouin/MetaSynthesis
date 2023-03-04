@@ -1,0 +1,59 @@
+Package: MetaSynthesis
+Type: Package
+Title: The Title of the Project
+Version: 0.0.0.9000
+Authors@R: c(
+    person(given   = "Damien",
+           family  = "Beillouin",
+           role    = c("aut", "cre", "cph"),
+           email   = "d.beillouin@cirad.fr",
+           comment = c(ORCID = "{{0000-0003-2014-3482}}")))
+Description: 
+    This package analyses the results of meta-analyses studying the effect of human interventions on soil carbon. 
+    The analyses are based on a systematic synthesis of the available literature on the CIRAD repository (https://doi.org/10.18167/DVN1/KKPLR834).
+    The database is described in Beillouin et al. 2022 (https://doi.org/10.1038/s41597-022-01318-1).
+URL: https://github.com/dbeillouin/MetaSynthesis
+BugReports: https://github.com/dbeillouin/MetaSynthesis/issues
+License: GPL (>= 2)
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.2.3
+Imports: 
+    brms,
+    broom,
+    broom.mixed,
+    clubSandwich,
+    cowplot,
+    data.table,
+    dplyr,
+    forcats,
+    furrr,
+    future,
+    ggExtra,
+    ggforce,
+    ggplot2,
+    ggpubr,
+    ggstar,
+    here,
+    magrittr,
+    metafor,
+    parallel,
+    pkgload,
+    plotly,
+    plyr,
+    progress,
+    purrr,
+    reactable,
+    readxl,
+    remotes,
+    rstan,
+    scales,
+    stringr,
+    tidyr,
+    writexl
+usethis: :use_package("magrittr")
+Config/testthat/edition: 3
+VignetteBuilder: knitr
+Suggests: 
+    knitr,
+    rmarkdown
