@@ -1,0 +1,49 @@
+---
+title: "Get started"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Get started}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE,
+                      comment  = "#>")
+```
+
+```{r setup}
+library(MetaSynthesis)
+library(magrittr)
+```
+
+This package perform a second order meta-analysis.
+
+First, you will have to load the data with the Load_Data function. 
+The structure of the file is pre-determine. 
+See Headername of the raw-data file example for more information.
+
+
+```{r Load, echo=TRUE, message= FALSE, warning=FALSE}
+# Load Data
+Load_Data(File_name= "Data_Base_C_Sol_2023-03-04.xlsx",
+            sheet_PS = "Primary_studies",
+            sheet_desMA = "retained_meta-analyses",
+            sheet_ES = "Effect-sizes")
+```
+
+
+Second, some quality check of the database are porform with the Check_graphs function. 
+
+```{r Check, echo=TRUE, message= FALSE, warning=FALSE}
+# Check Data
+Check_graphs(Name_File           = "RATIO",
+             Name_Col_Outcome    = "Outcome",
+             Outcome_of_interest =  "soil carbon",
+             Intervention        = "Sub_Cat_intervention",
+             Effect_size         = "Effect size")
+```
+
+
+
+

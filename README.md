@@ -42,17 +42,19 @@ library("MetaSynthesis")
 
 ## Overview
 
-Here is an overview of `MetaSynthesis` content: this package allows the
-reproduction of the figures associated with the paper Beillouin et al,
-2022
+Here is an overview of `MetaSynthesis` content: 
+This package provides all the steps to perform a second order meta-analysis. This includes:  
+-loading the data  
+- frequentist and Bayesian meta-analysis model  
+-taking into account the quality of the meta-analysis possible in the models  
+-consideration of possible redundancy in the models  
+-Production of output graphs  
 
 ## Citation
 
 Please cite this package as:
 
-> Beillouin Damien (2023) MetaSynthesis: An R package to analyse the
-> impacts of human intervention on soil organic carbon. R package
-> version 0.0.0.9000.
+> Beillouin Damien (2023) MetaSynthesis: An R package to perform second-order meta-analysis. R package > version 0.0.0.9000.
 
 ## Code of Conduct
 
