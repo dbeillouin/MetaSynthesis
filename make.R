@@ -32,7 +32,7 @@ dir.create(here::here("outputs"), showWarnings = FALSE)
 ## Run Project ----
 
 # Load Data
-Load_Data(File_name= "Data_Base_C_Sol_2023-02-18.xlsx",
+Load_Data(File_name= "Data_Base_C_Sol_2023-03-04.xlsx",
             sheet_PS = "Primary_studies",
             sheet_desMA = "retained_meta-analyses",
             sheet_ES = "Effect-sizes")
@@ -44,36 +44,41 @@ Check_graphs(Name_File           = "RATIO",
              Intervention        = "Sub_Cat_intervention",
              Effect_size         = "Effect size")
 
-# Frequentist Analysis
 
-RATIO  <-readxl::read_excel(here::here("data","derived-data","RATIO.xlsx")) %>%
-  dplyr::filter(Sub_cat_outcome %in% c("Bulk soil" ),
-                !details_outcome =='SOC dynamics')
+File_name= "Data_Base_C_Sol_2023-03-04.xlsx"
 
-### Per details_outcome, Land_use, Intervention
-Grouping_var         =c("details_outcome", "Land_use", "Intervention")
+RATIO <-readxl::read_excel(here::here("data","derived-data","RATIO.xlsx")) %>%
+  dplyr::filter(Sub_cat_outcome %in% c("bulk soil" ),
+                details_outcome %in% c("SOC stock", "SOC stock / SOC concentration", "SOC concentration"))
 
-source(here::here("analysis", "Frequentist_models.R"))
-BEST_fit_DO_LU_IN<-BEST_fit
-ALL_fit_DO_LU_IN<-FINAL_freq
 
-### Per details_outcome, Land_use, Intervention, Sub_cat_intervention
-Grouping_var         =c("details_outcome", "Land_use", "Intervention","Sub_Cat_intervention")
+
+### Figure 1 : #######
+Grouping_var         =c("Land_use", "Intervention","Sub_Cat_intervention","details")
 
 source(here::here("analysis", "Frequentist_models.R"))
-BEST_fit_DO_LU_IN_SubIN<-BEST_fit
-ALL_fit_DO_LU_IN_SubIN<-FINAL_freq
+BEST_fit_ALL_O_LU_IN_SubIN<-BEST_fit
+ALL_fit_ALL_O_LU_IN_SubIN<-FINAL_freq
+DATA_unES_DO2_LU_IN_SubIN <-DATABASE_un
 
-### Per  Land_use, Intervention, Sub_cat_intervention
+## Run script Figure_1.R
+
+
+####### Figure 2 #########
 Grouping_var         =c("Land_use", "Intervention","Sub_Cat_intervention")
 
 source(here::here("analysis", "Frequentist_models.R"))
 BEST_fit_DO2_LU_IN_SubIN<-BEST_fit
 ALL_fit_DO2_O_LU_IN_SubIN<-FINAL_freq
 DATA_unES_DO2_LU_IN_SubIN <-DATABASE_un
+# Run script Figure 2.r
+
+# use the data: BEST_fit_ALL_O_LU_IN_SubIN, BEST_fit_DO2_LU_IN_SubIN
+# to make the intercative table associated to Figure 2
 
 
-### Per  Land_use, Intervention, Sub_cat_intervention
+## Figure 4.
+### Per  Land_use, Sub_cat_intervention
 Grouping_var         =c("Intervention","Sub_Cat_intervention")
 
 source(here::here("analysis", "Frequentist_models.R"))
@@ -82,18 +87,192 @@ ALL_fit_IN_SubIN<-FINAL_freq
 DATA_unES_IN_SubIN <-DATABASE_un
 
 
-### Per  Land_use, Intervention, Sub_cat_intervention, details
-Grouping_var         =c("Land_use", "Intervention","Sub_Cat_intervention","details")
+
+
+
+###### Per details_outcome, Land_use, Intervention ########
+Grouping_var         =c("details_outcome", "Land_use", "Intervention")
+#Grouping_var         =c("Land_use", "Intervention")
 
 source(here::here("analysis", "Frequentist_models.R"))
-BEST_fit_ALL_O_LU_IN_SubIN<-BEST_fit
-ALL_fit_ALL_O_LU_IN_SubIN<-FINAL_freq
+BEST_fit_Conc_Stock<-BEST_fit ; ALL_fit_Conc_Stock<-FINAL_freq
 
-#### Merge all Dataframe
-BEST_fit2<- dplyr::bind_rows(dplyr::bind_rows(BEST_fit_DO_LU_IN,BEST_fit_DO_LU_IN_SubIN),BEST_fit_ALL_O_LU_IN_SubIN)
-# We also add the effect when only 1 MA was present
-BEST_fit2<-dplyr::bind_rows(BEST_fit,DATABASE_un)
+# comparison STOCK and Concentration values
+p <- Compare_CONC_Stock(BEST_fit_Conc_Stock)
+plotly::ggplotly(p)
 
-writexl::write_xlsx(BEST_fit2,
-                    path = here::here("data", "derived-data",
-                                      "BEST_fit.xlsx"))
+source(here::here("analysis", "Bayesian_models.R"))
+BEST_fit_Conc_Stock_BAY<-BEST_fit; ALL_fit_Conc_Stock_BAY<-FINAL_Bay
+
+# comparison Frequentist and Bayesian methods
+p<-Compare_Freq_Bay(BEST_fit_Conc_Stock, BEST_fit_Conc_Stock_BAY)
+plotly::ggplotly(p[[1]])
+reactable::reactable(p[[2]])
+
+
+### Per details_outcome, Land_use, Intervention, Sub_cat_intervention
+Grouping_var         =c("details_outcome", "Land_use", "Intervention","Sub_Cat_intervention")
+
+source(here::here("analysis", "Frequentist_models.R"))
+BEST_fit_Sub_cat_int<-BEST_fit; ALL_fit_Sub_cat_int<-FINAL_freq
+
+# source(here::here("analysis", "Bayesian_models.R"))
+# BEST_fit_Sub_cat_int_BAY<-BEST_fit; ALL_fit_Sub_cat_int_BAY<-FINAL_Bay
+
+# comparison Frequentist and Bayesian methods
+p<-Compare_Freq_Bay(BEST_fit_Sub_cat_int, BEST_fit_Sub_cat_int_BAY)
+p[[1]]
+reactable::reactable(p[[2]])
+
+# comparison linear and best_freq
+Linear <- ALL_fit_Sub_cat_int %>% dplyr::select(names(ALL_fit_Sub_cat_int)[1:which(names(ALL_fit_Sub_cat_int)=="n_ES")-1],
+                                                contains('Lin')) %>%
+  dplyr::mutate("AIC$answer" = 'Lin')
+names(Linear)[6:15]<-gsub("\\_.*","",names(Linear)[6:15])
+
+p<-Compare_Freq_Bay(BEST_fit_Sub_cat_int, Linear)
+p[[1]]
+reactable::reactable(p[[2]])
+
+# comparison linear and best_freq
+Trim <- ALL_fit_Sub_cat_int %>% dplyr::select(names(ALL_fit_Sub_cat_int)[1:which(names(ALL_fit_Sub_cat_int)=="n_ES")-1],
+                                                contains('Lin')) %>%
+  dplyr::mutate("AIC$answer" = 'Lin')
+names(Linear)[6:15]<-gsub("\\_.*","",names(Linear)[6:15])
+
+p<-Compare_Freq_Bay(BEST_fit_Sub_cat_int, Linear)
+p[[1]]
+reactable::reactable(p[[2]])
+
+## Analysis of publication bias
+ggplot(DATABASE_Linear %>%
+         dplyr::filter(!is.na(diffTF_lin)),
+       aes(x=cut(diffTF_lin, breaks=seq(-30,30,1) ))) +
+  geom_bar(binwidth=1)+
+  ggpubr::theme_pubr()+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+
+  xlab("Percent difference between linear and trim and fill method")
+
+
+Data<-DATABASE_plu$data[[18]]
+names(Data)[9]<- "ES"
+mod_Bay<- brm(ES|se(vi, sigma=TRUE) ~ 1+ (1|ID),    data =  Data,    prior = priors,  chains = chains,    warmup = warmup,  iter = iter,    cores= workers,    future = TRUE,    thin = thin,  inits = 0)
+
+mod_Freq<-metafor::rma.mv(ES,
+                vi,data=Data,
+                random=~1|ID,
+                method="REML",
+                control=list(optimizer="optim",
+                             optmethod="BFGS"))
+
+
+## Supplementary
+### Analysis for all type of outcome (bulk, fractions) and all type of metrics (ratio and others)
+Grouping_var         =c("details_outcome", "Land_use", "Intervention","Sub_Cat_intervention", "metric")
+
+RATIO  <-readxl::read_excel(here::here("data","derived-data","ALL_metrics.xlsx")) %>%
+  dplyr::filter(!(Sub_cat_outcome %in% c("bulk soil" ) &
+                 details_outcome %in% c("SOC stock", "SOC stock / SOC concentration", "SOC concentration") &
+                   metric %in% c("Ratio"))) %>%
+  dplyr::filter(Outcome == "soil carbon")
+
+
+source(here::here("analysis", "Frequentist_models.R"))
+BEST_fit_ALL<-BEST_fit; ALL_fit_ALL<-FINAL_freq
+
+
+library(reactable)
+TAB<-BEST_fit %>% dplyr::select(-c(fit,Weights,AIC))
+TAB$estimate<-round(TAB$estimate,2)
+TAB$conf.low<-round(TAB$conf.low,2)
+TAB$conf.high<-round(TAB$conf.high,2)
+TAB$p.value<-round(TAB$p.value,3)
+TAB$statistic<-round(TAB$statistic,3)
+  TAB$std.error<-round(TAB$std.error,2)
+reactable(TAB)
+
+
+GROUP <- dplyr::group_by(TAB, details_outcome) %>%
+  dplyr::summarize(Number = dplyr::n())
+
+library(dplyr)
+reactable(
+  GROUP,
+  details = function(index) {
+    sales <- filter(TAB, details_outcome == GROUP$details_outcome[index]) %>% select(-details_outcome)
+    tbl <- reactable(sales, outlined = TRUE, highlight = TRUE, fullWidth = FALSE,
+                     columns = list(
+                       estimate = colDef(
+                         cell = function(value) {
+                           if (value >= 0) paste0("+", value) else value
+                         },
+                         style = function(value) {
+                           color <- if (value > 0) {
+                             "#008000"
+                           } else if (value < 0) {
+                             "#e00000"
+                           }
+                           list(fontWeight = 600, color = color)
+                         }
+                       )
+                     ))
+    htmltools::div(style = list(margin = "12px 45px"), tbl)
+  },
+  onClick = "expand",
+  rowStyle = list(cursor = "pointer")
+)
+
+
+## Supplementary
+### Analysis of soil depth
+Grouping_var         =c("details_outcome", "Land_use", "Intervention","Sub_Cat_intervention", "group_depth")
+
+RATIO  <-readxl::read_excel(here::here("data","derived-data","RATIO.xlsx")) %>%
+  dplyr::filter(Sub_cat_outcome %in% c("bulk soil" ),
+                    details_outcome %in% c("SOC stock", "SOC stock / SOC concentration", "SOC concentration"),
+                    metric %in% c("Ratio"))
+
+
+source(here::here("analysis", "Frequentist_models.R"))
+BEST_fit_ALL<-BEST_fit; ALL_fit_ALL<-FINAL_freq
+
+
+library(reactable)
+TAB<-BEST_fit %>% dplyr::select(-c(fit,Weights,AIC)) %>%
+  filter(! grepl(';', Sub_Cat_intervention))
+TAB$estimate<-round(TAB$estimate,2)
+TAB$conf.low<-round(TAB$conf.low,2)
+TAB$conf.high<-round(TAB$conf.high,2)
+TAB$p.value<-round(TAB$p.value,3)
+TAB$statistic<-round(TAB$statistic,3)
+TAB$std.error<-round(TAB$std.error,2)
+
+GROUP <- dplyr::group_by(TAB, Sub_Cat_intervention) %>%
+  dplyr::summarize(Number = dplyr::n())
+
+library(dplyr)
+reactable(
+  GROUP,
+  details = function(index) {
+    sales <- filter(TAB, Sub_Cat_intervention == GROUP$Sub_Cat_intervention[index]) %>% select(-Sub_Cat_intervention)
+    tbl <- reactable(sales, outlined = TRUE, highlight = TRUE, fullWidth = FALSE,
+                     columns = list(
+                       estimate = colDef(
+                         cell = function(value) {
+                           if (value >= 0) paste0("+", value) else value
+                         },
+                         style = function(value) {
+                           color <- if (value > 0) {
+                             "#008000"
+                           } else if (value < 0) {
+                             "#e00000"
+                           }
+                           list(fontWeight = 600, color = color)
+                         }
+                       )
+                     ))
+    htmltools::div(style = list(margin = "12px 45px"), tbl)
+  },
+  onClick = "expand",
+  rowStyle = list(cursor = "pointer")
+)

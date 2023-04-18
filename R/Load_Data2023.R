@@ -62,7 +62,8 @@ ES<- readxl::read_excel(here::here("data","raw-data",File_name), sheet=sheet_ES)
           Sub_Cat_intervention = trimws(tolower(Sub_Cat_intervention)),
           Land_use       = tolower(Land_use),
           Intervention   = tolower(Intervention),
-          Outcome        = trimws(tolower(Outcome)))
+          Outcome        = trimws(tolower(Outcome)),
+          Sub_cat_outcome= tolower(Sub_cat_outcome))
 
 #### II/ Format the data ######
 
@@ -157,7 +158,7 @@ ES_TMP<-ES                          %>%
   dplyr::filter(Main_effect=="KEEP")       %>%  # We analyse only "main" effect sizes (not sub-scenarios)
   dplyr::select(ID,Land_use,Intervention,Sub_Cat_intervention, details,
          metric,Outcome,Sub_cat_outcome,details_outcome, Homogenized_response,N_paired_data,
-         lower_CI, `Effect size`, upper_CI)%>% # select some columns
+         lower_CI, `Effect size`, upper_CI, depth2, group_depth)%>% # select some columns
   dplyr::mutate(vi= FUN_var_from_CI(mean=`Effect size`, CI=upper_CI))
 
 
@@ -170,7 +171,6 @@ ES_TMP<-ES_TMP %>%
 # Suppress lines with no variance
 ES_TMP <- ES_TMP %>% dplyr::filter(!is.na(vi))
 RATIO  <- ES_TMP %>% dplyr::filter(metric=="Ratio")%>% dplyr::filter(!is.na(vi))
-RATIO  <- RATIO %>% dplyr::filter(!is.na(vi))
 
 # merge Final table and quality score
 RATIO<- merge(RATIO, QUAL %>% dplyr::select(c('ID', 'SCORE')))

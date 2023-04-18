@@ -3,10 +3,10 @@ library(ggpubr)
 library(ggstar)
 
 # Load Data
-
-TAB_FIG3<-dplyr::bind_rows(BEST_fit_DO2_LU_IN_SubIN,DATA_unES_DO2_LU_IN_SubIN) %>%
-            dplyr::bind_rows(.,BEST_fit_IN_SubIN) %>%
-            dplyr::filter(Intervention =="global changes")
+TAB_FIG3<-dplyr::bind_rows(BEST_fit_IN_SubIN,BEST_fit_DO2_LU_IN_SubIN) %>%
+            #dplyr::bind_rows(.,BEST_fit_IN_SubIN) %>%
+            dplyr::filter(Intervention =="global changes") %>%
+          dplyr::filter(!Sub_Cat_intervention =="fire")
 
 TAB_FIG3<-TAB_FIG3 %>%
   mutate(Land_use = factor(Land_use, levels=rev(c("ALL",
@@ -14,15 +14,19 @@ TAB_FIG3<-TAB_FIG3 %>%
                                                   "forest land",
                                                   "grassland",
                                                   "wetlands",
-                                                  "other land/ various land uses"))))
+                                                  "other land",
+                                                  "various land uses"))))
 
 TAB_FIG3<-TAB_FIG3 %>%
   mutate(Sub_Cat_intervention = factor(Sub_Cat_intervention, levels=rev(c("ALL",
                                                                           "combination of climatic factors",
                                                                           "climate change : co2 enrichment",
                                                                           "climate change : warming",
+                                                                          "climate change : drought",
+                                                                          "climate change : rainfall increase/irrgation",
                                                                           "climate change : drought/rainfall reduction",
-                                                                          "freeze-thaw ; snow cover",
+                                                                          "snow cover increase",
+                                                                          "fire",
                                                                           'wild fire'))))
 TAB_FIG3$CAT<-TAB_FIG3$Sub_Cat_intervention
 
@@ -30,9 +34,12 @@ TAB_FIG3 <- TAB_FIG3 %>% mutate(CAT = forcats::fct_recode(CAT,
                                                  "Direct effects" = "combination of climatic factors",
                                                  "Direct effects"= "climate change : co2 enrichment",
                                                  "Direct effects" =  "climate change : warming",
+                                                 "Direct effects" =  "climate change : drought",
+                                                 "Direct effects" = "climate change : rainfall increase/irrgation",
                                                  "Direct effects" = "climate change : drought/rainfall reduction",
-                                                 "Indirect effects" = "freeze-thaw ; snow cover",
-                                                 "Indirect effects" = "wild fire"))
+                                                 "Indirect effects" = "snow cover increase",
+                                                 "Indirect effects" = "wild fire",
+                                                 "Indirect effects" = "fire"))
 
 TAB_FIG3<-TAB_FIG3 %>%
   mutate(CAT = factor(CAT, levels=c("Direct effects",
@@ -168,8 +175,8 @@ plot_ES<-ggplot(TAB_FIG3, aes(firstup(as.character(TAB_FIG3$Sub_Cat_intervention
     position = position_dodge2(width = 0.7, preserve = "single"),size=0.4
   )+
   ggstar::geom_star(aes(fill = Land_use),starshape=12, size=3,starstroke=1, position= position_dodge2(width = 0.7, preserve = "single"))+
-  scale_color_manual(values = c("#af8dc3", "#0493ff","#6e9b6d", "#036901","#ff9d00", "black"))+
-  scale_fill_manual(values = c("#af8dc3", "#0493ff","#6e9b6d", "#036901","#ff9d00", "white"))+
+  scale_color_manual(values = c('gray',"#af8dc3", "#0493ff","#6e9b6d", "#036901","#ff9d00", "black"))+
+  scale_fill_manual(values = c('gray',"#af8dc3", "#0493ff","#6e9b6d", "#036901","#ff9d00", "white"))+
 scale_linetype_manual(values=c("solid","solid","solid","solid","solid","solid")) +
   scale_alpha_manual(values=c(1,1,1,1,1,1,1,1,1))+
   coord_flip()+ theme_pubr()+
@@ -196,5 +203,59 @@ plot<-cowplot::ggdraw() +
   cowplot::draw_plot(plot_LU, x = 0.85, y = 0.2, width = 0.2, height = 0.2)+
   cowplot::draw_plot(plot_CC, x = 0.85, y = 0.7, width = 0.2, height = 0.2)
 
+
+
+#
+TAB_FIG3$estimate<- as.numeric(as.character(TAB_FIG3$estimate))
+TAB_FIG3$conf.low<-round(TAB_FIG3$conf.low,1)
+TAB_FIG3$conf.high<-round(TAB_FIG3$conf.high,1)
+TAB_FIG3$estimate<-round(TAB_FIG3$estimate,1)
+TAB_FIG3$statistic<-round(TAB_FIG3$statistic,2)
+TAB_FIG3$std.error<-round(TAB_FIG3$std.error,1)
+TAB_FIG3$p.value<-round(TAB_FIG3$p.value,3)
+
+
+TAB<-TAB_FIG3 %>% dplyr::select(-c(AIC))
+names(TAB)[14]<-"model"
+TAB<-TAB %>% dplyr::select(-c('Intervention','data',"Weights",'CAT',"model",'fit'))
+TAB<-TAB%>% relocate("Land_use", .before = "Sub_Cat_intervention")
+
+GROUP <- dplyr::group_by(TAB, `Sub_Cat_intervention`) %>%
+  dplyr::summarize(Number = dplyr::n())
+
+
+TAB<-TAB%>% arrange(-`Land_use`,`Sub_Cat_intervention`)
+
+reactable(
+  GROUP,
+  details = function(index) {
+    sales <- filter(TAB, `Sub_Cat_intervention` == GROUP$`Sub_Cat_intervention`[index]) %>% select(-`Sub_Cat_intervention`)
+    tbl <- reactable(sales,outlined = TRUE, highlight = TRUE, fullWidth = TRUE,
+                     columns = list(
+                       estimate = colDef(
+                         cell = function(value) {
+                           if (value >= 0) paste0("+", value) else value
+                         },
+                         style = function(value) {
+                           color <- if (value > 0) {
+                             "#008000"
+                           } else if (value < 0) {
+                             "#e00000"
+                           }
+                           list(fontWeight = 600, color = color)
+                         }
+                       )
+                     ),
+                     rowStyle = function(index) {
+                       if (sales[index, "Land_use"] =='ALL') {
+                         list(background = "rgba(0, 0, 0, 0.05)")
+                       }
+                     }
+    )
+    htmltools::div(style = list(margin = "12px 45px"), tbl)
+  },
+  onClick = "expand",
+  rowStyle = list(cursor = "pointer")
+)
 
 

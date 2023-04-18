@@ -89,6 +89,7 @@ Check_graphs<- function(Name_File           = "RATIO",
   # dynamic plot
   varianceplot<-plotly::ggplotly(varianceplot)
 
-  print(list(histogram,Variance_All_metric, forestplot,varianceplot))
+  print(list(histogram,Variance_All_metric, varianceplot))
+  print(forestplot)
   print("Four plots have been produced")
 }

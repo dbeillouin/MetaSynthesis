@@ -3,17 +3,18 @@ library(ggExtra)
 library(ggstar)
 library(ggplot2)
 library(dplyr)
+library(reactable)
 
 #  Load Primary studies
-File_name= "Data_Base_C_Sol_2023-02-18.xlsx"
+File_name= "Data_Base_C_Sol_2023-03-04.xlsx"
 sheet_PS = "Primary_studies"
-LAND_use<- "grassland"
+LAND_use<- "cropland"
 
-Color= "#f9f871"
-LIM= c(-45,70)
+Color= "#ff9d02"
+LIM= c(-10,140)
 
-#color for Cropland: ##ff9d02/ LIM= c(-10,90)
-#color for grassland: #f9f871
+#color for Cropland: ##ff9d02/ LIM= c(-10,140)
+#color for grassland: #f9f871/ LIM= c(-50,75)
 #color for forestland: #006a00/ LIM= c(-65,45)
 
 IND_STU  <-       readxl::read_excel(here::here("data","raw-data",File_name), sheet=sheet_PS) %>%
@@ -21,7 +22,7 @@ IND_STU  <-       readxl::read_excel(here::here("data","raw-data",File_name), sh
                 ID = gsub(" ", "_", ID, fixed = TRUE))
 
 
-BEST_fit2<-dplyr::bind_rows(BEST_fit_DO2_LU_IN_SubIN,DATA_unES_DO2_LU_IN_SubIN)
+BEST_fit2<-dplyr::bind_rows(BEST_fit_DO2_LU_IN_SubIN,BEST_fit_ALL_O_LU_IN_SubIN)
 
 MEAN<-BEST_fit2 %>% filter(Intervention =='management') %>%
   filter(!grepl(';', Sub_Cat_intervention)) %>%
@@ -30,6 +31,60 @@ MEAN<-BEST_fit2 %>% filter(Intervention =='management') %>%
   arrange(Land_use,-estimate) %>%  ungroup() %>%
   mutate(position = 1:nrow(.)) %>%
   mutate(Sub_Cat_intervention= firstup(Sub_Cat_intervention))
+
+TAB_R_PUb<-MEAN %>% dplyr::select(-c(data, position, Weights, fit))
+
+TAB_R_PUb$estimate<- as.numeric(as.character(TAB_R_PUb$estimate))
+TAB_R_PUb$conf.low<-round((exp(TAB_R_PUb$conf.low)-1)*100,1)
+TAB_R_PUb$conf.high<-round((exp(TAB_R_PUb$conf.high)-1)*100,1)
+TAB_R_PUb$estimate<-round((exp(TAB_R_PUb$estimate)-1)*100,1)
+TAB_R_PUb$statistic<-round(TAB_R_PUb$statistic,2)
+TAB_R_PUb$std.error<-round((exp(TAB_R_PUb$std.error)-1)*100,1)
+TAB_R_PUb$p.value<-round((exp(TAB_R_PUb$p.value)-1)*100,3)
+
+
+TAB<-TAB_R_PUb %>% dplyr::select(-c(AIC))
+names(TAB)[13]<-"model"
+TAB<-TAB %>% dplyr::select(-c('Intervention'))
+TAB<-TAB%>% relocate("details", .after = "Sub_Cat_intervention")
+
+GROUP <- dplyr::group_by(TAB, `Land_use`) %>%
+  dplyr::summarize(Number = dplyr::n())
+
+
+TAB<-TAB%>% arrange(`Land_use`,`Sub_Cat_intervention`,`details`)
+
+reactable(
+  GROUP,
+  details = function(index) {
+    sales <- filter(TAB, `Land_use` == GROUP$`Land_use`[index]) %>% select(-`Land_use`)
+    tbl <- reactable(sales,  groupBy = "Sub_Cat_intervention",outlined = TRUE, highlight = TRUE, fullWidth = TRUE,
+                     columns = list(
+                       estimate = colDef(
+                         cell = function(value) {
+                           if (value >= 0) paste0("+", value) else value
+                         },
+                         style = function(value) {
+                           color <- if (value > 0) {
+                             "#008000"
+                           } else if (value < 0) {
+                             "#e00000"
+                           }
+                           list(fontWeight = 600, color = color)
+                         }
+                       )
+                     ),
+                     rowStyle = function(index) {
+                       if (is.na(sales[index, "details"])) {
+                         list(background = "rgba(0, 0, 0, 0.05)")
+                       }
+                     }
+                     )
+    htmltools::div(style = list(margin = "12px 45px"), tbl)
+  },
+  onClick = "expand",
+  rowStyle = list(cursor = "pointer")
+)
 
 
 ## Database with indidivual effects
@@ -79,6 +134,10 @@ for ( i in 1: length(list)){
 #                                                             "Residues" = "Residues management",
 #                                                             "Perennial crops/orchards" = "Perenial crops/orchards",
 #                                                             "Fertilization" = "Mineral fertilization"))
+
+
+# For the plots, we select only main calculated effect-sizes.
+TAB_Land_use %<>% filter(is.na(details))
 
 
 TAB_Land_use$estimate<- as.numeric(as.character(TAB_Land_use$estimate))

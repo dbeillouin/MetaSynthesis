@@ -7,21 +7,16 @@ library(brms)
 library(rstan)
 library(clubSandwich)
 
-Outcome_to_be_included=c("SOC stock", "SOC concentration", "SOC stock / SOC concentration")
-Outcome_to_be_included=c("Bulk soil")
 
-Grouping_var         =c("Land_use", "Intervention")
-chains =4
-warmup = 8000
-iter = 20000
+chains =3
+warmup = 6000
+iter = 14000
 thin = 10
 
 options(warn=-1)
 workers = parallel::detectCores()-1
 future::plan(future::multisession(workers= parallel::detectCores()-1))
 
-RATIO  <-readxl::read_excel(here::here("data","derived-data","RATIO.xlsx")) %>%
-  dplyr::filter(Sub_cat_outcome %in% Outcome_to_be_included )
 
 DATABASE <-RATIO                                            %>%
   dplyr::mutate(N_paired_data = as.numeric(N_paired_data))  %>%
@@ -64,7 +59,7 @@ DATABASE_Bay_3lvl <- DATABASE_plu   %>%
                                               thin = thin,
                                               inits = 0)),
                 tidied = purrr::map(fit_B, tidy,conf.int = TRUE),
-                WAIC = purrr::map(fit_B, ~ WAIC(add_criterion(.x, "waic"))$p_waic),
+                WAIC = purrr::map(fit_B, ~ WAIC(add_criterion(.x, "waic"))$waic),
                 Rhat = purrr::map(fit_B, ~ summary(.x)$fixed$Rhat),
                 neff = purrr::map(fit_B, ~  length(which(neff_ratio(.x)<0.1))),
                 Nb_D = purrr::map(fit_B, ~ sum(subset(nuts_params(.x), Parameter == "divergent__")$Value))) %>%
@@ -73,8 +68,6 @@ DATABASE_Bay_3lvl <- DATABASE_plu   %>%
   dplyr::select(-data)
 
 saveRDS(DATABASE_Bay_3lvl, here::here("data","tmp","DATABASE_Bay_3lvl.rds"))
-
-
 rm(DATABASE_Bay_3lvl)
 
               ### Bayesian model 2 lvl #####
@@ -92,14 +85,15 @@ rm(DATABASE_Bay_3lvl)
                                                              thin = thin,
                                                              inits = 0)),
                               tidied = purrr::map(fit_B, tidy,conf.int = TRUE),
-                              WAIC = purrr::map(fit_B, ~ WAIC(add_criterion(.x, "waic"))$estimates[3,1]),
+                              WAIC = purrr::map(fit_B, ~ WAIC(add_criterion(.x, "waic"))$waic),
                               Rhat = purrr::map(fit_B, ~ summary(.x)$fixed$Rhat),
                               neff = purrr::map(fit_B, ~  length(which(neff_ratio(.x)<0.1))),
                               Nb_D = purrr::map(fit_B, ~ sum(subset(nuts_params(.x), Parameter == "divergent__")$Value))
                 )%>%
                 tidyr::unnest(tidied) %>%
                 dplyr::rename_with(~ paste0(., "_Bay_2lvl"), -c(Grouping_var, "n_ES", "n_data", "n_MA","data"))
-
+saveRDS(DATABASE_Bay_2lvl, here::here("data","tmp","DATABASE_Bay_2lvl.rds"))
+rm(DATABASE_Bay_2lvl)
 
               ### Bayesian model 2 lvl and quality #####
               DATABASE_Bay_2lvlQ <- DATABASE_plu   %>%
@@ -116,14 +110,15 @@ rm(DATABASE_Bay_3lvl)
                                                              thin = thin,
                                                              inits = 0)),
                               tidied = purrr::map(fit_B, tidy,conf.int = TRUE),
-                              WAIC = purrr::map(fit_B, ~ WAIC(add_criterion(.x, "waic"))$estimates[3,1]),
+                              WAIC = purrr::map(fit_B, ~ WAIC(add_criterion(.x, "waic"))$waic),
                               Rhat = purrr::map(fit_B, ~ summary(.x)$fixed$Rhat),
                               neff = purrr::map(fit_B, ~  length(which(neff_ratio(.x)<0.1))),
                               Nb_D = purrr::map(fit_B, ~ sum(subset(nuts_params(.x), Parameter == "divergent__")$Value))
                 )%>%
                 tidyr::unnest(tidied) %>%
                 dplyr::rename_with(~ paste0(., "_2lvlQ"), -c(Grouping_var, "n_ES", "n_data", "n_MA","data"))
-
+saveRDS(DATABASE_Bay_2lvlQ, here::here("data","tmp","DATABASE_Bay_2lvlQ.rds"))
+rm(DATABASE_Bay_2lvlQ)
 
               ### Bayesian model 3 lvl and quality #####
               DATABASE_Bay_3lvlQ <- DATABASE_plu  %>%
@@ -140,16 +135,65 @@ rm(DATABASE_Bay_3lvl)
                                                              thin = thin,
                                                              inits = 0)),
                               tidied = purrr::map(fit_B, tidy,conf.int = TRUE),
-                              WAIC = purrr::map(fit_B, ~ WAIC(add_criterion(.x, "waic"))$estimates[3,1]),
+                              WAIC = purrr::map(fit_B, ~ WAIC(add_criterion(.x, "waic"))$waic),
                               Rhat = purrr::map(fit_B, ~ summary(.x)$fixed$Rhat),
                               neff = purrr::map(fit_B, ~  length(which(neff_ratio(.x)<0.1))),
                               Nb_D = purrr::map(fit_B, ~ sum(subset(nuts_params(.x), Parameter == "divergent__")$Value))
                 )%>%
                 tidyr::unnest(tidied) %>%
                 dplyr::rename_with(~ paste0(., "_3lvlQ"), -c(Grouping_var, "n_ES", "n_data", "n_MA","data"))
+saveRDS(DATABASE_Bay_3lvlQ, here::here("data","tmp","DATABASE_Bay_3lvlQ.rds"))
+rm(DATABASE_Bay_3lvlQ)
+
+DATABASE_Bay_3lvl<-readRDS(here::here("data","tmp","DATABASE_Bay_3lvl.rds")) %>%
+  dplyr::select(-fit_B_Bay_3lvl) %>%
+  dplyr::filter(term_Bay_3lvl== "(Intercept)")
+
+DATABASE_Bay_2lvl<-readRDS(here::here("data","tmp","DATABASE_Bay_2lvl.rds")) %>%
+  dplyr::select(-fit_B_Bay_2lvl) %>%
+  dplyr::filter(term_Bay_2lvl== "(Intercept)")
+
+DATABASE_Bay_2lvlQ<-readRDS(here::here("data","tmp","DATABASE_Bay_2lvlQ.rds")) %>%
+  dplyr::select(-fit_B_2lvlQ) %>%
+  dplyr::filter(term_2lvlQ== "(Intercept)")
+
+DATABASE_Bay_3lvlQ<-readRDS(here::here("data","tmp","DATABASE_Bay_3lvlQ.rds")) %>%
+  dplyr::select(-fit_B_3lvlQ) %>%
+  dplyr::filter(term_3lvlQ== "(Intercept)")
 
 
 
               FINAL_Bay<-plyr::join_all(list(DATABASE_Bay_3lvl,DATABASE_Bay_2lvl,DATABASE_Bay_2lvlQ,DATABASE_Bay_3lvlQ),
                                         by=Grouping_var, type='left')
+
+
+
+              FINAL_Bay<-plyr::join_all(list(DATABASE_Bay_3lvl,DATABASE_Bay_2lvl,DATABASE_Bay_2lvlQ),
+                                        by=Grouping_var, type='left')
+
+
+              ## Identify model with best AIC
+              AIC<-FINAL_Bay %>%
+                dplyr::select(dplyr::contains("AIC")) %>%
+                tidyr::unnest()
+
+              AIC$answer <- substr(names(AIC)[apply(AIC, MARGIN = 1, FUN = which.min)],10,19)
+
+              ## Select estimates of the best model
+              AA<-NULL
+              for (i in 1 : dim(FINAL_Bay)[1]){
+                VAR<-setdiff(c("2lvl","3lvl","2lvlQ","3lvlQ"),AIC$answer[i])
+                AA[[i]]<- FINAL_Bay[i,] %>%
+                  dplyr::select(-c(data,n_ES,n_data,n_MA)) %>%
+                  dplyr::select(!contains(VAR))
+                names(AA[[i]]) <- gsub("_.*","",names(AA[[i]]))
+              }
+
+
+              BB<- do.call(rbind, AA)
+              BB<- cbind(BB,AIC$answer)
+              ## Combine in a dataframe
+              BEST_fit<-cbind(FINAL_Bay %>% dplyr::select(c(Grouping_var,"n_ES","n_data","n_MA")),
+                             BB)
+
 

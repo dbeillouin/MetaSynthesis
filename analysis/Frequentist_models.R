@@ -137,7 +137,7 @@ library(magrittr)  # pour les pipes
   ######   Quality and redundancy meta-analytical model ####
   # We first create the global Redundancy matrix
 
-  Global_Redundancy_matrix(File_name   = "Data_Base_C_Sol_2023-02-18.xlsx",
+  Global_Redundancy_matrix(File_name   = File_name,
                            sheet_name  = "Primary_studies",
                            ID          = "ID",
                            DOI         = "DOI",
@@ -206,12 +206,16 @@ library(magrittr)  # pour les pipes
 ###### We add the rosenfail safe number and Trim and fill model #####
   for (i in 1 : dim(DATABASE_Linear)[1]){
     DATABASE_Linear$Rosen[i]<-metafor::fsn(`Effect size`, vi, data=DATABASE_plu[[length(Grouping_var)+1]][[i]],type="Rosenberg")$fsnum
-    DATABASE_Linear$TF<-tryCatch({tidy(trimfill(DATABASE_Linear[[11]][[i]], control=list(stepadj=0.5)))},
+    DATABASE_Linear$TF[i]<-tryCatch({metafor::trimfill(DATABASE_Linear[[9]][[i]], control=list(stepadj=0.5))$b[,1][[1]]},
                     error=function(e){'NA'})
+    DATABASE_Linear$Egger[i]<-tryCatch({  (metafor::regtest(DATABASE_Linear[[9]][[i]], model="lm")$pval)},
+                                    error=function(e){'NA'})
     }
 
- # On assemble les effect sizes calculés (quand n_ES>2) et ceux quand n_ES=1:
-  #DATABASE_two<-dplyr::bind_rows(DATABASE_two,DATABASE_un)
+  DATABASE_Linear$diffTF_lin<-(1-exp(DATABASE_Linear$estimate_Lin))-(1-exp(as.numeric(DATABASE_Linear$TF)))
+  DATABASE_Linear$diffTF_lin<- DATABASE_Linear$diffTF_lin*100
+
+  EGGER<-DATABASE_Linear %>% dplyr::filter(as.numeric(Egger) < 0.05)
 
   FINAL_freq<-plyr::join_all(list(DATABASE_two,DATABASE_Three,DATABASE_Quality,DATABASE_Quality_Red,DATABASE_Linear),
                          by=Grouping_var, type='left')
@@ -238,5 +242,12 @@ library(magrittr)  # pour les pipes
   ## Combine in a dataframe
    BEST_fit<-cbind(DATABASE_two %>% dplyr::select(c(Grouping_var,"n_ES","n_data","n_MA")),
                    do.call(rbind, AA), AIC$answer)
+
+
+   # On assemble les effect sizes calculés (quand n_ES>2) et ceux quand n_ES=1:
+   FINAL_freq<-dplyr::bind_rows(FINAL_freq,DATABASE_un)
+   BEST_fit<-dplyr::bind_rows(BEST_fit,DATABASE_un)
+
+
 
   rm(DATABASE_two,DATABASE_Three,DATABASE_Quality,DATABASE_Quality_Red,DATABASE_Linear,DATABASE_plu)
