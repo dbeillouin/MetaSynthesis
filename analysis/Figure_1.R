@@ -17,7 +17,9 @@ library(plotly)
                                       levels=rev(c("land management",
                                                    "land use change",
                                                      "global changes")))) %>%
-    dplyr::mutate(estimate = (exp(estimate)-1)*100)  %>%
+    dplyr::mutate(estimate = (exp(estimate)-1)*100,
+                  conf.low =(exp(conf.low)-1)*100,
+                  conf.high =(exp(conf.high)-1)*100 )  %>%
     tidyr::separate(Sub_Cat_intervention, c("first", "second"),sep='->') %>%
     dplyr::mutate(Land_use = factor(ifelse(Land_use == "land_use change", first, Land_use)))%>%
     dplyr::mutate(Land_use =as.character(trimws(trimws(Land_use))))
@@ -25,6 +27,8 @@ library(plotly)
   TAB$Land_use<- dplyr::recode_factor(TAB$Land_use,"other land/ various land uses" = "other land",
                                                        "various land uses"            = "other land",
                                                        "shrublands"                   ="other land")
+
+
 
 
 # Calculate the total number of land use (i.e include land-use change)
@@ -153,7 +157,7 @@ p<-ggplot(TAB,
   coord_flip()+
   theme_pubr() +
    theme(legend.position="none")+
-  labs(y="SOC change (percent)")+
+  labs(y="Soil organic carbon (SOC) change (%)")+
   theme(legend.position="none",
         strip.background =element_rect(color="white", fill= NA),
         strip.text.x = element_text(angle = 0, hjust = 0, size=15),
@@ -168,16 +172,18 @@ p<-ggplot(TAB,
    cowplot::draw_plot(Plot_INT, x = 0.83, y = 0.7, width = 0.2, height = 0.2)
 plot
 
+## correct some naming
+TAB<- TAB %>% dplyr::mutate(Intervention= plyr::revalue(Intervention,c("global changes"= "Climate change")))
+
 p<-ggplot(TAB,
           aes(x = Intervention, y = estimate, group=Intervention,
               text = paste("Land use :"       , Land_use,"\n",
-                           "Intervention :"   ,Intervention,"\n",
-                           "sub-category :"   , details,"\n",
+                           "Driver :"   , details,"\n",
                            "n_data :"         ,n_data,"\n",
                            "n_meta-analyse :" ,n_MA,"\n",
-                           "estimate :"       ,round(estimate,1), "\n",
-                           "conf.low :"       ,round(conf.low,1), "\n",
-                           "conf.high :"      ,round(conf.high,1)))) +
+                           "Estimate :"       ,round(estimate,1), "\n",
+                           "Conf.low :"       ,round(conf.low,1), "\n",
+                           "Conf.high :"      ,round(conf.high,1)))) +
   xlab(NULL) +
   geom_hline(aes(yintercept=0), linetype=2, color='gray80')+
   geom_sina(aes(fill = Land_use,
@@ -189,7 +195,7 @@ p<-ggplot(TAB,
   coord_flip()+
   theme_pubr() +
   theme(legend.position="none")+
-  labs(y="SOC change (percent)")+
+  labs(y="Soil organic carbon (SOC) change (%)")+
   theme(legend.position="none",
         strip.background =element_rect(color="white", fill= NA),
         strip.text.x = element_text(angle = 0, hjust = 0, size=15),
@@ -200,10 +206,18 @@ p<-ggplot(TAB,
 
  ggplotly(p,tooltip = "text")
 
+ unique(TAB$details)
+
 TAB %>% group_by(Intervention)%>%
-  filter(!details %in% c("fire : Wildfire","fire : wildfire", "snow cover")) %>%
+  filter(!first %in% c("wildfire","snow cover decrease", "fire")) %>%
   dplyr::summarize(q1 = quantile(estimate, 0.25),
             q3 = quantile(estimate, 0.75),
                           min = min (estimate),
                           max= max(estimate))
 
+FF<-TAB %>% filter(Intervention== "Global changes")
+
+
+TAB %>%
+  dplyr::group_by(Intervention) %>%
+  dplyr::summarize(est = quantile(estimate, probs = c(0.25, 0.5, 0.75)))

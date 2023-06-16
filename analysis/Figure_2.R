@@ -6,10 +6,10 @@ library(stringr)
 TAB_LUC<-dplyr::bind_rows(BEST_fit_ALL_O_LU_IN_SubIN, BEST_fit_DO2_LU_IN_SubIN)
 
 
-TAB_LUC<-TAB_LUC %>% filter(Intervention =='land use change') %>%
+TAB_LUC<-TAB_LUC %>% dplyr::filter(Intervention =='land use change') %>%
   tidyr::separate(Sub_Cat_intervention, c("first", "second"), sep= '->') %>%
-  filter(!first  =="various land uses ") %>%
-  filter(!second  ==" various land uses")
+  dplyr::filter(!first  =="various land uses ") %>%
+  dplyr::filter(!second  ==" various land uses")
 
 TAB_LUC$estimate<- as.numeric(as.character(TAB_LUC$estimate))
 TAB_LUC$conf.low<-round((exp(TAB_LUC$conf.low)-1)*100,1)
@@ -27,8 +27,12 @@ names(TAB)[2]<-"final land use"
 names(TAB)[13]<-"model"
 reactable(TAB)
 
+TAB$details[is.na(TAB$details)] <- "Global effect"
+
 GROUP <- dplyr::group_by(TAB, `initial land use`) %>%
   dplyr::summarize(Number = dplyr::n())
+
+
 
 library(dplyr)
 reactable(
@@ -50,11 +54,18 @@ reactable(
                            list(fontWeight = 600, color = color)
                          }
                        )
-                     ))
+                     ),
+                     defaultPageSize = 25,
+                     rowStyle = function(index) {
+                       if (sales[index, "details"]== "Global effect") {
+                         list(background = "rgba(0, 0, 0, 0.05)")
+                       }
+                     }
+                     )
     htmltools::div(style = list(margin = "12px 45px"), tbl)
   },
   onClick = "expand",
-  rowStyle = list(cursor = "pointer")
+  rowStyle = list(cursor = "pointer"),
 )
 
 

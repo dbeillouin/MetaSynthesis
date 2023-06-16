@@ -54,6 +54,18 @@ GROUP <- dplyr::group_by(TAB, `Land_use`) %>%
 
 TAB<-TAB%>% arrange(`Land_use`,`Sub_Cat_intervention`,`details`)
 
+TAB %<>% mutate(Sub_Cat_intervention = forcats::fct_recode(Sub_Cat_intervention,
+                                             "Biochar" ="Amendments pyrogenic",
+                                             "Amendments"= "Amendments non-pyrogenic",
+                                             "Replace Fert. by Amend." =  "Amendments non-pyrogenic substitution",
+                                             "Tillage reduction" = "Tillage",
+                                             "Residues" = "Residues management",
+                                             "Perennial crops/orchards" = "Perenial crops/orchards",
+                                             "Fertilization" = "Mineral fertilization"))
+
+
+
+
 reactable(
   GROUP,
   details = function(index) {

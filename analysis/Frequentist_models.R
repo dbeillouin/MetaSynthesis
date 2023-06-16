@@ -35,7 +35,7 @@ library(magrittr)  # pour les pipes
                   tryCatch({
                     mod  <-metafor::rma.mv(`Effect size`,
                                   vi,data=.x,
-                                  random=~1|ID,
+                                  random=~1|NUM,
                                   method="REML",
                                   control=list(optimizer="optim",
                                                optmethod="BFGS"))
@@ -43,7 +43,7 @@ library(magrittr)  # pour les pipes
                     mod  <- metafor::rma.mv(`Effect size`,
                                    vi,
                                    data=.x,
-                                   random=~1|ID,
+                                   random=~1|NUM,
                                    method="REML")
                   }),.progress = TRUE),
       tidied = purrr::map(fit_2_lvl, broom.mixed::tidy,conf.int = TRUE),
@@ -51,7 +51,7 @@ library(magrittr)  # pour les pipes
       AIC = purrr::map(fit_2_lvl, ~ AIC(.x))) %>%
     tidyr::unnest(tidied) %>%
     dplyr::select(-c("term","type" )) %>%
-    dplyr::rename_with(~ paste0(., "_2lvl"), -c(all_of(Grouping_var), "n_ES", "n_data", "n_MA","data"))
+    dplyr::rename_with(~ paste0(., "_m1.2lvl"), -c(all_of(Grouping_var), "n_ES", "n_data", "n_MA","data"))
 
   ###### Classical three level meta-analytical model. ####
   DATABASE_Three <- DATABASE_plu %>%
@@ -76,20 +76,20 @@ library(magrittr)  # pour les pipes
       AIC = purrr::map(fit_3_lvl, ~ AIC(.x))) %>%
     tidyr::unnest(tidied) %>%
     dplyr::select(-c("term","type" )) %>%
-    dplyr::rename_with(~ paste0(., "_3lvl"), -c(Grouping_var, "n_ES", "n_data", "n_MA","data"))
+    dplyr::rename_with(~ paste0(., "_m2.3lvl"), -c(Grouping_var, "n_ES", "n_data", "n_MA","data"))
 
 
-  ###### Quality meta-analytical model. ####
+##### Quality two random effect meta-analytical model. ####
 
-  DATABASE_Three <- DATABASE_plu %>%
+  DATABASE_Two_Q <- DATABASE_plu %>%
     dplyr::ungroup() %>%
     dplyr::mutate(
-      fit_3_lvl = furrr::future_map(data, ~
+      fit_2_lvlQ = furrr::future_map(data, ~
                                       tryCatch({
                                         mod  <-metafor::rma.mv(`Effect size`,
                                                                QUALITY_DOI(SCORE =.$SCORE, vi= .$vi),
                                                                data=.x,
-                                                               random=~1|ID/NUM,
+                                                               random=~1|NUM,
                                                                method="REML",
                                                                control=list(optimizer="optim",
                                                                             optmethod="BFGS"))
@@ -97,14 +97,40 @@ library(magrittr)  # pour les pipes
                                         mod  <- metafor::rma.mv(`Effect size`,
                                                                 vi,
                                                                 data=.x,
-                                                                random=~1|ID/NUM,
+                                                                random=~1|NUM,
                                                                 method="REML")}),.progress = TRUE),
-      tidied = purrr::map(fit_3_lvl, tidy,conf.int = TRUE),
-      Weights = purrr::map(fit_3_lvl, ~ weights(.x)),
-      AIC = purrr::map(fit_3_lvl, ~ AIC(.x))) %>%
+      tidied = purrr::map(fit_2_lvlQ, tidy,conf.int = TRUE),
+      Weights = purrr::map(fit_2_lvlQ, ~ weights(.x)),
+      AIC = purrr::map(fit_2_lvlQ, ~ AIC(.x))) %>%
     tidyr::unnest(tidied) %>%
     dplyr::select(-c("term","type" )) %>%
-    dplyr::rename_with(~ paste0(., "_3lvl"), -c(Grouping_var, "n_ES", "n_data", "n_MA","data"))
+    dplyr::rename_with(~ paste0(., "_m3.2lvl2"), -c(Grouping_var, "n_ES", "n_data", "n_MA","data"))
+
+
+#   GG<-DATABASE_plu[[4]][[2]]
+# mod<-metafor::rma.mv(`Effect size`,
+#                      vi,
+#                      data=GG,
+#                      random=~1|ID,
+#                      method="REML",
+#                      control=list(optimizer="optim",
+#                                   optmethod="BFGS"))
+#
+# AIC(mod)
+#
+# metafor::rma.mv(`Effect size`,
+#                 V=
+#                   FUN_MAT_RED(
+#                     Matrix_name        = "Global_Redundancy_matrix.xlsx",
+#                     Selected_rows_ID   = GG$ID ,
+#                     Variance           =  QUALITY_DOI(SCORE =GG$SCORE, vi= GG$vi)),
+#                 data=GG,
+#                 random=~1|ID/NUM,
+#                 method="REML",
+#                 control=list(optimizer="optim",
+#                              optmethod="BFGS"),verbose=TRUE)
+#
+
 
 
   DATABASE_Quality <- DATABASE_plu %>%
@@ -115,7 +141,7 @@ library(magrittr)  # pour les pipes
                     mod  <-metafor::rma.mv(`Effect size`,
                                  QUALITY_DOI(SCORE =.$SCORE, vi= .$vi),
                                   data=.x,
-                                  random=~1|NUM/ID,
+                                  random=~1|ID/NUM,
                                   method="REML",
                                   control=list(optimizer="optim",
                                                optmethod="BFGS"))
@@ -123,7 +149,7 @@ library(magrittr)  # pour les pipes
                     mod  <-metafor::rma.mv(`Effect size`,
                                   QUALITY_DOI(SCORE =.$SCORE, vi= .$vi),
                                   data=.x,
-                                  random=~1|NUM/ID,
+                                  random=~1|ID/NUM,
                                   method="REML")
                   }) ,.progress = TRUE),
       tidied_Q = purrr::map(fit_Q, tidy,conf.int = TRUE),
@@ -131,7 +157,7 @@ library(magrittr)  # pour les pipes
       AIC = purrr::map(fit_Q, ~ AIC(.x)))%>%
     tidyr::unnest(tidied_Q) %>%
     dplyr::select(-c("term","type" )) %>%
-    dplyr::rename_with(~ paste0(., "_Q"), -c(Grouping_var, "n_ES", "n_data", "n_MA","data"))
+    dplyr::rename_with(~ paste0(., "_m4.3lvlQ"), -c(Grouping_var, "n_ES", "n_data", "n_MA","data"))
 
 
   ######   Quality and redundancy meta-analytical model ####
@@ -155,7 +181,7 @@ library(magrittr)  # pour les pipes
                                                Selected_rows_ID   = .$ID ,
                                                Variance           =  QUALITY_DOI(SCORE =.$SCORE, vi= .$vi)),
                                            data=.x,
-                                           random=~1|NUM/ID,
+                                           random=~1|ID/NUM,
                                            method="REML",
                                            control=list(optimizer="optim",
                                                         optmethod="BFGS"))
@@ -163,7 +189,7 @@ library(magrittr)  # pour les pipes
                              mod  <-metafor::rma.mv(`Effect size`,
                                                 vi,
                                                data=.x,
-                                               random=~1|NUM/ID,
+                                               random=~1|ID/NUM,
                                                method="REML")
                            }),.progress = TRUE),
       tidied_QR = purrr::map(fit_QR, tidy,conf.int = TRUE),
@@ -171,8 +197,38 @@ library(magrittr)  # pour les pipes
       AIC = purrr::map(fit_QR, ~ AIC(.x))) %>%
     tidyr::unnest(tidied_QR) %>%
     dplyr::select(-c("term","type" )) %>%
-    dplyr::rename_with(~ paste0(., "_QR"), -c(Grouping_var, "n_ES", "n_data", "n_MA","data"))
+    dplyr::rename_with(~ paste0(., "_m5.3lvl.QR"), -c(Grouping_var, "n_ES", "n_data", "n_MA","data"))
 
+####   Quality  two random effect model and redundancy meta-analytical model ####
+  DATABASE_Quality_2lvl_Red <- DATABASE_plu %>%
+    dplyr::ungroup() %>%
+    dplyr::mutate(
+      fit_2lvl_QR = furrr::future_map(data, ~
+                                   tryCatch({
+                                     mod  <-metafor::rma.mv(`Effect size`,
+                                                            V=
+                                                              FUN_MAT_RED(
+                                                                Matrix_name        = "Global_Redundancy_matrix.xlsx",
+                                                                Selected_rows_ID   = .$ID ,
+                                                                Variance           =  QUALITY_DOI(SCORE =.$SCORE, vi= .$vi)),
+                                                            data=.x,
+                                                            random=~1|NUM,
+                                                            method="REML",
+                                                            control=list(optimizer="optim",
+                                                                         optmethod="BFGS"))
+                                   }, error=function(e){
+                                     mod  <-metafor::rma.mv(`Effect size`,
+                                                            vi,
+                                                            data=.x,
+                                                            random=~1|NUM,
+                                                            method="REML")
+                                   }),.progress = TRUE),
+      tidied_QR = purrr::map(fit_2lvl_QR, tidy,conf.int = TRUE),
+      Weights = purrr::map(fit_2lvl_QR, ~ weights(.x)),
+      AIC = purrr::map(fit_2lvl_QR, ~ AIC(.x))) %>%
+    tidyr::unnest(tidied_QR) %>%
+    dplyr::select(-c("term","type" )) %>%
+    dplyr::rename_with(~ paste0(., "_m6.2lvl.QR"), -c(Grouping_var, "n_ES", "n_data", "n_MA","data"))
 
 
   ######   linear meta-analytical model ####
@@ -200,7 +256,7 @@ library(magrittr)  # pour les pipes
       AIC = purrr::map(fit_L, ~ AIC(.x))) %>%
       tidyr::unnest(tidied) %>%
     dplyr::select(-c("term","type" )) %>%
-    dplyr::rename_with(~ paste0(., "_Lin"), -c(Grouping_var, "n_ES", "n_data", "n_MA","data"))
+    dplyr::rename_with(~ paste0(., "_m7.Lin"), -c(Grouping_var, "n_ES", "n_data", "n_MA","data"))
 
 
 ###### We add the rosenfail safe number and Trim and fill model #####
@@ -212,12 +268,12 @@ library(magrittr)  # pour les pipes
                                     error=function(e){'NA'})
     }
 
-  DATABASE_Linear$diffTF_lin<-(1-exp(DATABASE_Linear$estimate_Lin))-(1-exp(as.numeric(DATABASE_Linear$TF)))
+  DATABASE_Linear$diffTF_lin<-(1-exp(DATABASE_Linear$estimate_m7.Lin))-(1-exp(as.numeric(DATABASE_Linear$TF)))
   DATABASE_Linear$diffTF_lin<- DATABASE_Linear$diffTF_lin*100
 
   EGGER<-DATABASE_Linear %>% dplyr::filter(as.numeric(Egger) < 0.05)
 
-  FINAL_freq<-plyr::join_all(list(DATABASE_two,DATABASE_Three,DATABASE_Quality,DATABASE_Quality_Red,DATABASE_Linear),
+  FINAL_freq<-plyr::join_all(list(DATABASE_two,DATABASE_Two_Q,DATABASE_Three,DATABASE_Quality,DATABASE_Quality_Red,DATABASE_Quality_2lvl_Red,DATABASE_Linear),
                          by=Grouping_var, type='left')
 
 
@@ -225,10 +281,10 @@ library(magrittr)  # pour les pipes
   ## Identify model with best AIC
   AIC<-FINAL_freq %>%
     dplyr::select(dplyr::contains("AIC")) %>%
-    dplyr::select(-"AIC_Lin")    %>%
+    dplyr::select(-"AIC_m7.Lin")    %>%
     tidyr::unnest()
 
-  AIC$answer <- substr(names(AIC)[apply(AIC, MARGIN = 1, FUN = which.min)],5,9)
+  AIC$answer <- substr(names(AIC)[apply(AIC, MARGIN = 1, FUN = which.min)],5,19)
 
 ## Select estimates of the best model
   AA<-NULL

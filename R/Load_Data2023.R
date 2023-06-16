@@ -23,7 +23,7 @@
 #' @importFrom forcats fct_recode
 #' @importFrom magrittr  %>%
 #' @export
-Load_Data<- function(File_name= "Data_Base_C_Sol_2023-02-18.xlsx",
+Load_Data<- function(File_name= "Data_Base_C_Sol_2023-15-05.xlsx",
                      sheet_PS = "Primary_studies",
                      sheet_desMA = "retained_meta-analyses",
                      sheet_ES = "Effect-sizes"){
@@ -138,13 +138,13 @@ ES$upper_CI <- ES$`Effect size` + ES$CI_moy
 
 ## change the order of the ES if necessary
 for (i in 1: length(ES$Inverse_ES)){
-  if(!is.na(ES$Inverse_ES[i]=='YES')){
+  if(ES$Inverse_ES[i]=='YES'){
     ES$lower_CI[i]<- -ES$lower_CI[i]}}
 for (i in 1: length(ES$Inverse_ES)){
-  if(!is.na(ES$Inverse_ES[i]=='YES')){
+  if(ES$Inverse_ES[i]=='YES'){
     ES$`Effect size`[i]<- -ES$`Effect size`[i]}}
 for (i in 1: length(ES$Inverse_ES)){
-  if(!is.na(ES$Inverse_ES[i]=='YES')){
+  if(ES$Inverse_ES[i]=='YES'){
     ES$upper_CI[i]<- -ES$upper_CI[i]}}
 
 # supress useless files
@@ -174,6 +174,7 @@ RATIO  <- ES_TMP %>% dplyr::filter(metric=="Ratio")%>% dplyr::filter(!is.na(vi))
 
 # merge Final table and quality score
 RATIO<- merge(RATIO, QUAL %>% dplyr::select(c('ID', 'SCORE')))
+ES_TMP<- merge(ES_TMP, QUAL %>% dplyr::select(c('ID', 'SCORE')))
 
 COHEN<- ES_TMP %>% dplyr::filter(metric=="Cohen's d")%>% dplyr::filter(!is.na(vi))
 COHEN<- COHEN %>% dplyr::filter(!is.na(vi))

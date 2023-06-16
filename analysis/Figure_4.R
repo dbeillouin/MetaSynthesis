@@ -25,7 +25,7 @@ TAB_FIG3<-TAB_FIG3 %>%
                                                                           "climate change : drought",
                                                                           "climate change : rainfall increase/irrgation",
                                                                           "climate change : drought/rainfall reduction",
-                                                                          "snow cover increase",
+                                                                          "snow cover decrease",
                                                                           "fire",
                                                                           'wild fire'))))
 TAB_FIG3$CAT<-TAB_FIG3$Sub_Cat_intervention
@@ -37,13 +37,17 @@ TAB_FIG3 <- TAB_FIG3 %>% mutate(CAT = forcats::fct_recode(CAT,
                                                  "Direct effects" =  "climate change : drought",
                                                  "Direct effects" = "climate change : rainfall increase/irrgation",
                                                  "Direct effects" = "climate change : drought/rainfall reduction",
-                                                 "Indirect effects" = "snow cover increase",
+                                                 "Indirect effects" = "snow cover decrease",
                                                  "Indirect effects" = "wild fire",
                                                  "Indirect effects" = "fire"))
 
 TAB_FIG3<-TAB_FIG3 %>%
   mutate(CAT = factor(CAT, levels=c("Direct effects",
                                     "Indirect effects")))
+
+## correct some namming
+TAB<- TAB %>% dplyr::mutate(Intervention= plyr::revalue(Intervention,c("climate change : rainfall increase/irrgation"= "climate change : rainfall increase")))
+
 
 TAB_FIG3$estimate<- ((exp(TAB_FIG3$estimate)-1)*100)
 TAB_FIG3$conf.low<- ((exp(TAB_FIG3$conf.low)-1)*100)

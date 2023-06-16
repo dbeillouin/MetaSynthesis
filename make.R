@@ -32,7 +32,7 @@ dir.create(here::here("outputs"), showWarnings = FALSE)
 ## Run Project ----
 
 # Load Data
-Load_Data(File_name= "Data_Base_C_Sol_2023-03-04.xlsx",
+Load_Data(File_name= "Data_Base_C_Sol_2023-15-05.xlsx",
             sheet_PS = "Primary_studies",
             sheet_desMA = "retained_meta-analyses",
             sheet_ES = "Effect-sizes")
@@ -45,7 +45,7 @@ Check_graphs(Name_File           = "RATIO",
              Effect_size         = "Effect size")
 
 
-File_name= "Data_Base_C_Sol_2023-03-04.xlsx"
+File_name= "Data_Base_C_Sol_2023-15-05.xlsx"
 
 RATIO <-readxl::read_excel(here::here("data","derived-data","RATIO.xlsx")) %>%
   dplyr::filter(Sub_cat_outcome %in% c("bulk soil" ),
@@ -74,7 +74,7 @@ DATA_unES_DO2_LU_IN_SubIN <-DATABASE_un
 # Run script Figure 2.r
 
 # use the data: BEST_fit_ALL_O_LU_IN_SubIN, BEST_fit_DO2_LU_IN_SubIN
-# to make the intercative table associated to Figure 2
+# to make the interactive table associated to Figure 2
 
 
 ## Figure 4.
@@ -170,6 +170,11 @@ mod_Freq<-metafor::rma.mv(ES,
 ### Analysis for all type of outcome (bulk, fractions) and all type of metrics (ratio and others)
 Grouping_var         =c("details_outcome", "Land_use", "Intervention","Sub_Cat_intervention", "metric")
 
+# RATIO <-readxl::read_excel(here::here("data","derived-data","RATIO.xlsx")) %>%
+#   dplyr::filter(Sub_cat_outcome %in% c("bulk soil" ),
+#                 details_outcome %in% c("SOC stock", "SOC stock / SOC concentration", "SOC concentration"))
+
+
 RATIO  <-readxl::read_excel(here::here("data","derived-data","ALL_metrics.xlsx")) %>%
   dplyr::filter(!(Sub_cat_outcome %in% c("bulk soil" ) &
                  details_outcome %in% c("SOC stock", "SOC stock / SOC concentration", "SOC concentration") &
@@ -221,6 +226,7 @@ reactable(
   onClick = "expand",
   rowStyle = list(cursor = "pointer")
 )
+#write.table(TAB %>% select(-data),'Suppl_All_effects.csv')
 
 
 ## Supplementary
@@ -250,6 +256,8 @@ TAB$std.error<-round(TAB$std.error,2)
 GROUP <- dplyr::group_by(TAB, Sub_Cat_intervention) %>%
   dplyr::summarize(Number = dplyr::n())
 
+#write.table(TAB %>% select(-data),'Suppl_soil_depth.csv')
+
 library(dplyr)
 reactable(
   GROUP,
@@ -276,3 +284,72 @@ reactable(
   onClick = "expand",
   rowStyle = list(cursor = "pointer")
 )
+
+
+### Supp
+
+TAB<-dplyr::bind_rows(BEST_fit_ALL_O_LU_IN_SubIN,DATABASE_un)%>%
+  dplyr::mutate(Intervention = tolower(Intervention)) %>%
+  dplyr::filter(Intervention %in% c("land use change",
+                                    "management",
+                                    "global changes")) %>%
+  dplyr::mutate(Intervention= plyr::revalue(Intervention,c("management"= "land management")))%>%
+  dplyr::mutate(Intervention = factor(Intervention,
+                                      levels=rev(c("land management",
+                                                   "land use change",
+                                                   "global changes")))) %>%
+  dplyr::mutate(estimate = (exp(estimate)-1)*100) %>%
+  filter(grepl(';', Sub_Cat_intervention)|
+           Sub_Cat_intervention =="organic farming")
+
+TAB<-TAB %>% dplyr::select(-c(fit,Weights,AIC,data))
+GROUP <- dplyr::group_by(TAB, `Sub_Cat_intervention`) %>%
+  dplyr::summarize(Number = dplyr::n())
+
+
+TAB$estimate<- as.numeric(as.character(TAB$estimate))
+TAB$conf.low<-round(((TAB$conf.low)),1)
+TAB$conf.high<-round(((TAB$conf.high)),1)
+TAB$estimate<-round(((TAB$estimate)),1)
+TAB$statistic<-round(TAB$statistic,2)
+TAB$std.error<-round(((TAB$std.error)),1)
+TAB$p.value<-round(((TAB$p.value)),3)
+
+#write.table(TAB,'Combi_practices.csv')
+
+
+TAB$details[is.na(TAB$details)] <- "Global effect"
+library(dplyr)
+reactable(
+  GROUP,
+  details = function(index) {
+    sales <- filter(TAB, `Sub_Cat_intervention` == GROUP$`Sub_Cat_intervention`[index]) %>% select(-`Sub_Cat_intervention`)
+    tbl <- reactable(sales, outlined = TRUE, highlight = TRUE, fullWidth = FALSE,
+                     columns = list(
+                       estimate = colDef(
+                         cell = function(value) {
+                           if (value >= 0) paste0("+", value) else value
+                         },
+                         style = function(value) {
+                           color <- if (value > 0) {
+                             "#008000"
+                           } else if (value < 0) {
+                             "#e00000"
+                           }
+                           list(fontWeight = 600, color = color)
+                         }
+                       )
+                     ),
+                     defaultPageSize = 25,
+                     rowStyle = function(index) {
+                       if (sales[index, "details"]== "Global effect") {
+                         list(background = "rgba(0, 0, 0, 0.05)")
+                       }
+                     }
+    )
+    htmltools::div(style = list(margin = "12px 45px"), tbl)
+  },
+  onClick = "expand",
+  rowStyle = list(cursor = "pointer"),
+)
+
